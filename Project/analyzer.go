@@ -23,6 +23,7 @@ func (a *CodeAnalyzer) CheckFunctionNames(node ast.Node) {
 	}
 }
 
+
 func (a *CodeAnalyzer) ListImports(node ast.Node) {
 	switch n := node.(type) {
 	case *ast.GenDecl:
