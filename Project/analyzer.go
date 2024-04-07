@@ -1,16 +1,18 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
 type CodeAnalyzer struct {
-	Errors []string
+	Errors  []string
 	Imports []string
 }
 
@@ -22,7 +24,6 @@ func (a *CodeAnalyzer) CheckFunctionNames(node ast.Node) {
 		}
 	}
 }
-
 
 func (a *CodeAnalyzer) ListImports(node ast.Node) {
 	switch n := node.(type) {
@@ -48,38 +49,63 @@ func (a *CodeAnalyzer) Analyze(code string) {
 }
 
 func (a *CodeAnalyzer) Visit(node ast.Node) ast.Visitor {
-	a.CheckFunctionNames(node)	
+	a.CheckFunctionNames(node)
 	a.ListImports(node)
 	return a
 }
 
-func main() {
-	if len(os.Args) < 2 {
-		fmt.Println(os.Args)
-		fmt.Println("Usage: go run analyzer.go <filename>")
-		os.Exit(1)
-	}
+func walkTraversal(path string, info os.FileInfo, err error) error {
+	if err == nil && !info.IsDir() {
+		extension := filepath.Ext(path)
+		if extension == ".go" {
+			fileName := strings.TrimSuffix(info.Name(), extension)
+			fmt.Printf("File: %s, Extension: %s\n", fileName, extension)
 
-	filename := os.Args[1]
-	code, err := os.ReadFile(filename)
-	if err != nil {
-		fmt.Printf("Error reading file: %s\n", err)
-		os.Exit(1)
-	}
+			// Read the content of the file and analyze
+			code, err := os.ReadFile(path)
+			if err != nil {
+				fmt.Printf("Error reading file %s: %s\n", path, err)
+				return nil
+			}
 
-	analyzer := &CodeAnalyzer{}
-	analyzer.Analyze(string(code))
+			analyzer := &CodeAnalyzer{}
+			analyzer.Analyze(string(code))
 
-	if len(analyzer.Errors) > 0 {
-		for _, err := range analyzer.Errors {
-			fmt.Println(err)
+			if len(analyzer.Errors) > 0 {
+				for _, err := range analyzer.Errors {
+					fmt.Println("\t", err)
+				}
+			} else {
+				fmt.Println("No issues found in", fileName)
+			}
+
+			fmt.Println("List of imports in", fileName+":")
+			for _, imp := range analyzer.Imports {
+				fmt.Println("\t", imp)
+			}
 		}
-	} else {
-		fmt.Println("No issues found.")
+	}
+	return nil
+}
+
+func main() {
+	directoryPtr := flag.String("directory", "", "the directory path to walk")
+	flag.Parse()
+
+	// If directory flag is not provided, use the current working directory
+	directory := *directoryPtr
+	if directory == "" {
+		var err error
+		directory, err = os.Getwd()
+		if err != nil {
+			fmt.Println("Error getting current directory:", err)
+			os.Exit(1)
+		}
 	}
 
-	fmt.Println("List of all imports:")
-	for _, imp := range analyzer.Imports {
-		fmt.Println(imp)
+	err := filepath.Walk(directory, walkTraversal)
+
+	if err != nil {
+		fmt.Println("Error:", err)
 	}
 }
