@@ -22,6 +22,32 @@ func (a *CodeAnalyzer) CheckFunctionNames(node ast.Node) {
 	}
 }
 
+func (a *CodeAnalyzer) CheckHardcodedCredentials(node ast.Node) {
+	switch n := node.(type) {
+	case *ast.AssignStmt:
+		for _, expr := range n.Rhs {
+			if lit, ok := expr.(*ast.BasicLit); ok && lit.Kind == token.STRING {
+				value := strings.Trim(lit.Value, `"`)
+				if strings.Contains(value, "password") || strings.Contains(value, "secret") {
+					a.Errors = append(a.Errors, fmt.Sprintf("Potential hardcoded credential found: %s", value))
+				}
+			}
+		}
+	case *ast.ValueSpec:
+		if len(n.Values) == 0 {
+			return // No values assigned
+		}
+		for _, val := range n.Values {
+			if lit, ok := val.(*ast.BasicLit); ok && lit.Kind == token.STRING {
+				value := strings.Trim(lit.Value, `"`)
+				if strings.Contains(value, "password") || strings.Contains(value, "secret") {
+					a.Errors = append(a.Errors, fmt.Sprintf("Potential hardcoded credential found: %s", value))
+				}
+			}
+		}
+	}
+}
+
 func (a *CodeAnalyzer) ListImports(node ast.Node) {
 	switch n := node.(type) {
 	case *ast.GenDecl:
@@ -48,5 +74,6 @@ func (a *CodeAnalyzer) Analyze(code string) {
 func (a *CodeAnalyzer) Visit(node ast.Node) ast.Visitor {
 	a.CheckFunctionNames(node)
 	a.ListImports(node)
+	a.CheckHardcodedCredentials(node)
 	return a
 }
