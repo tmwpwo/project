@@ -5,6 +5,7 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"regexp"
 	"strings"
 )
 
@@ -48,6 +49,25 @@ func (a *CodeAnalyzer) CheckHardcodedCredentials(node ast.Node) {
 	}
 }
 
+func (a *CodeAnalyzer) CheckSQLInjection(node ast.Node) {
+	sqlInjectionPattern := regexp.MustCompile(`(?:SELECT|INSERT|UPDATE|DELETE)\s+.+\s+(?:FROM|INTO|VALUES)\s*\(`)
+	switch n := node.(type) {
+	case *ast.CallExpr:
+		// Check if it's a function call to database query/execution function
+		// For demonstration, assuming it's db.Query() or db.Exec()
+		if len(n.Args) > 0 {
+			for _, arg := range n.Args {
+				// Check if the argument is a basic literal
+				if lit, ok := arg.(*ast.BasicLit); ok {
+					if sqlInjectionPattern.MatchString(lit.Value) {
+						a.Errors = append(a.Errors, "Potential SQL injection vulnerability found")
+					}
+				}
+			}
+		}
+	}
+}
+
 func (a *CodeAnalyzer) ListImports(node ast.Node) {
 	switch n := node.(type) {
 	case *ast.GenDecl:
@@ -75,5 +95,6 @@ func (a *CodeAnalyzer) Visit(node ast.Node) ast.Visitor {
 	a.CheckFunctionNames(node)
 	a.ListImports(node)
 	a.CheckHardcodedCredentials(node)
+	a.CheckSQLInjection(node)
 	return a
 }
