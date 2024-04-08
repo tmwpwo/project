@@ -1,9 +1,10 @@
-package main
+package travel
 
 import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"project/analyzer"
 	"strings"
 )
 
@@ -21,7 +22,7 @@ func WalkTraversal(path string, info os.FileInfo, err error) error {
 				return nil
 			}
 
-			analyzer := &CodeAnalyzer{}
+			analyzer := &analyzer.CodeAnalyzer{}
 			analyzer.Analyze(string(code))
 
 			if len(analyzer.Errors) > 0 {

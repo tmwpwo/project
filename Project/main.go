@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"project/travel"
 )
 
 func main() {
@@ -22,7 +23,7 @@ func main() {
 		}
 	}
 
-	err := filepath.Walk(directory, WalkTraversal)
+	err := filepath.Walk(directory, travel.WalkTraversal)
 
 	if err != nil {
 		fmt.Println("Error:", err)
