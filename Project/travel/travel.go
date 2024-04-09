@@ -11,7 +11,7 @@ import (
 func WalkTraversal(path string, info os.FileInfo, err error) error {
 	if err == nil && !info.IsDir() {
 		extension := filepath.Ext(path)
-		if extension == ".go" {
+		if extension == ".go" && !strings.Contains(info.Name(), "_test") {
 			fileName := strings.TrimSuffix(info.Name(), extension)
 			fmt.Printf("File: %s, Extension: %s\n", fileName, extension)
 
