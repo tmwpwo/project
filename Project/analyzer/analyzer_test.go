@@ -63,15 +63,32 @@ func TestAnalyze(t *testing.T) {
 	code := `
 	package main
 
-	import (
-		"fmt"
-		"database/sql"
-	)
+import (
+	"database/sql"
+	"fmt"
+)
 
-	func main() {
-		db := sql.Open("mysql", "user:password@tcp(localhost:3306)/dbname")
-		fmt.Println("Hello, world!")
+func main() {
+
+	secret := "secretKey"
+
+	db, err := sql.Open("mysql", "user:password@/dbname")
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
 	}
+	defer db.Close()
+
+	userInput := "1 OR 1=1"
+	query := fmt.Sprintf("INSERT INTO users (name) VALUES ('%s')", userInput) // SQL injection vulnerability
+	_, err = db.Exec(query)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+
+	fmt.Println("User added successfully.")
+}s
 	`
 	codeAnalyzer.Analyze(code)
 	if len(codeAnalyzer.Errors) != 2 {
